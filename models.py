@@ -1,7 +1,12 @@
+from datetime import datetime
+from subprocess import call
 from typing import List, Generator
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+from countries import COUNTRIES
 
 
 @dataclass(frozen=True)
@@ -69,6 +74,36 @@ class Match:
     def is_available(self) -> bool:
         return len(self.available_categories) > 0
     
+    def as_keyboard(self) -> InlineKeyboardMarkup:
+        from fifa_provider import MatchesProvider
+
+        m = self
+        keyboard = []
+
+        host = m.host_team
+        if m.host_team in COUNTRIES:
+            host = f'{host} {COUNTRIES[m.host_team].icon}'
+        opposing = m.opposing_team
+        if m.opposing_team in COUNTRIES:
+            opposing = f'{COUNTRIES[m.opposing_team].icon} {opposing}'
+
+        keyboard.append([
+            InlineKeyboardButton(host, callback_data='host'),
+            InlineKeyboardButton(opposing, callback_data='opposing'),
+        ])
+        match_date = datetime.strptime(m.match_date.split(', ')[1], '%d %B %Y').strftime('%d-%m-%Y')
+        date = f'📅 {match_date} {m.match_time}'
+        keyboard.append([InlineKeyboardButton(date, callback_data='date')])
+        location = f'🏟 {m.stadium} 🏟'
+        keyboard.append([InlineKeyboardButton(location, callback_data='stadium')])
+        categories = ', '.join([f'Cat {c.quality}' for c in m.available_categories])
+        categories = f'🎫 {categories}'
+        keyboard.append([InlineKeyboardButton(categories, callback_data='categories')])
+        url = MatchesProvider.URL_TEMPLATE.format(MatchesProvider.PERFORMANCE_IDS_RANGE_START + m.match_number - 1)
+        keyboard.append([InlineKeyboardButton('Open', url=url)])
+
+        return InlineKeyboardMarkup(keyboard)
+
     def __str__(self) -> str:
         """
             ```
