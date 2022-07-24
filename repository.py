@@ -1,7 +1,6 @@
 import os
-from typing import List
+from typing import List, Tuple
 from datetime import datetime
-import json
 
 import ydb
 
@@ -19,14 +18,15 @@ class MatchesRepository:
         self.pool = ydb.SessionPool(driver)
 
 
-    def get_current_matches(self) -> List[Match]:
+    def get_current_matches(self) -> Tuple[int, List[Match]]:
         result = self.pool.retry_operation_sync(self._select_latest_matches)
         if len(result) == 0 or len(result[0].rows) == 0:
             return []
         data = result[0].rows[0].data
+        timestamp = result[0].rows[0].timestamp
         if not data:
             return []
-        return decode_matches(data)
+        return timestamp, decode_matches(data)
 
 
     def store_matches(self, timestamp: datetime, matches: List[Match]) -> None:
@@ -39,7 +39,9 @@ class MatchesRepository:
             """
             $latest_ts = SELECT MAX(`timestamp`) FROM results;
             
-            SELECT data
+            SELECT 
+                CAST(`timestamp` AS Int64) AS `timestamp`,
+                data
             FROM results 
             WHERE `timestamp` = $latest_ts;
             """,

@@ -1,7 +1,7 @@
 import asyncio
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 from itertools import zip_longest
 import traceback
@@ -50,8 +50,9 @@ async def update_state(bot: Bot, actual_matches: List[Match]):
         return
     try:
         repository = MatchesRepository()
-        current_matches = repository.get_current_matches()
-        logger.info('got current matches: %s', current_matches)
+        timestamp, current_matches = repository.get_current_matches()
+        if timestamp < int((datetime.now() - timedelta(hours=1)).timestamp() * 1000 * 1000):
+            await bot.report_error('last update more than 1h ago')
         updated_matches = get_updated_matches(current_matches, actual_matches)
         await bot.report_matches(updated_matches)
         timestamp = datetime.now()
