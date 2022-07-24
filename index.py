@@ -26,11 +26,16 @@ async def main():
     bot = Bot()
 
     actual_matches = await get_actual_matches(bot)
-    if actual_matches is None:
-        return
-    
     only_available = [m for m in actual_matches if m.is_available()]
     await update_state(bot, only_available)
+
+
+class FetchException(Exception):
+    pass
+
+
+class UpdateStateException(Exception):
+    pass
 
 
 async def get_actual_matches(bot: Bot) -> List[Match]:
@@ -41,7 +46,7 @@ async def get_actual_matches(bot: Bot) -> List[Match]:
             actual_matches.append(m.match)
         elif m.is_error():
             await bot.report_error(m.error)
-            return None
+            raise FetchException('Failed to fetch actual matches')
     return actual_matches
 
 
@@ -60,6 +65,7 @@ async def update_state(bot: Bot, actual_matches: List[Match]):
     except Exception as exc:
         logger.exception('failed to update state')
         await bot.report_error('failed to update state\n{}'.format(traceback.format_exc()))
+        raise UpdateStateException('failed to update state') from exc
 
 def get_updated_matches(current: List[Match], actual: List[Match]) -> List[Match]:
     updates = []
