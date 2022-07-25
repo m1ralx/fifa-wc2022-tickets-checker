@@ -173,7 +173,7 @@ class Match:
 class GetMatchResult:
     def __init__(self, match: Match = None, error: str = None) -> None:
         self.match = match
-        self.error = error
+        self._error = error
     
     @classmethod
     def success(cls, match: Match) -> 'GetMatchResult':
@@ -183,8 +183,5 @@ class GetMatchResult:
     def error(cls, error: str) -> 'GetMatchResult':
         return cls(error=error)
     
-    def is_success(self) -> bool:
-        return self.match is not None
-    
     def is_error(self) -> bool:
-        return self.error is not None
+        return self._error is not None

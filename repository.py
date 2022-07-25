@@ -6,6 +6,7 @@ import ydb
 
 from models import Match
 from encoding import decode_matches, encode_matches
+from timestamp import get_timestamp
 
 
 class MatchesRepository:
@@ -21,16 +22,16 @@ class MatchesRepository:
     def get_current_matches(self) -> Tuple[int, List[Match]]:
         result = self.pool.retry_operation_sync(self._select_latest_matches)
         if len(result) == 0 or len(result[0].rows) == 0:
-            return []
+            return 0, []
         data = result[0].rows[0].data
         timestamp = result[0].rows[0].timestamp
         if not data:
-            return []
+            return 0, []
         return timestamp, decode_matches(data)
 
 
-    def store_matches(self, timestamp: datetime, matches: List[Match]) -> None:
-        return self.pool.retry_operation_sync(self._upsert_matches(timestamp, matches))
+    def store_matches(self, dt: datetime, matches: List[Match]) -> None:
+        return self.pool.retry_operation_sync(self._upsert_matches(dt, matches))
 
 
     @staticmethod
@@ -50,7 +51,7 @@ class MatchesRepository:
         )
 
     @staticmethod
-    def _upsert_matches(timestamp: datetime, matches: List[Match]):
+    def _upsert_matches(dt: datetime, matches: List[Match]):
         query =  """     
             DECLARE $timestamp AS TIMESTAMP;
             DECLARE $matches AS Utf8;
@@ -64,7 +65,7 @@ class MatchesRepository:
             return tx.execute(
                 prepared_query,
                 parameters={
-                    '$timestamp': int(timestamp.timestamp()) * 1000 * 1000,
+                    '$timestamp': get_timestamp(dt),
                     '$matches': encode_matches(matches),
                 },
                 commit_tx=True,
