@@ -98,9 +98,8 @@ class Match:
         keyboard.append([InlineKeyboardButton(location, callback_data='stadium')])
         categories = ', '.join([f'Cat {c.quality}' for c in m.available_categories])
         categories = f'🎫 {categories}'
-        keyboard.append([InlineKeyboardButton(categories, callback_data='categories')])
         url = MatchesProvider.URL_TEMPLATE.format(MatchesProvider.PERFORMANCE_IDS_RANGE_START + m.match_number - 1)
-        keyboard.append([InlineKeyboardButton('Open', url=url)])
+        keyboard.append([InlineKeyboardButton(categories, url=url)])
 
         return InlineKeyboardMarkup(keyboard)
 
